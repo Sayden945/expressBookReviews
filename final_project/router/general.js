@@ -22,38 +22,54 @@ public_users.post("/register", (req,res) => {
     }
 });
 
+function getListBooks() {
+    return new Promise((resolve, reject) => {
+        resolve(books);
+    });
+}
+
 // Get the book list available in the shop
 public_users.get('/',function (req, res) {
-    res.send(JSON.stringify(books,null,4));
+    getListBooks().then((books)=> res.send(JSON.stringify(books, null, 4))
+    );
 });
 
+//Get books by ISBN promise
+function getByISBN(isbn) {
+    return new Promise((resolve, reject) => {
+        let isbnNum = parseInt(isbn);
+        if (books[isbnNum]) {
+            resolve(books[isbnNum]);
+        } else {
+            reject({status:404, message:`Book: ${isbn} not found`});
+        }
+    })
+}
 // Get book details based on ISBN
-public_users.get('/isbn/:isbn',function (req, res) {
-    const isbn = req.params.isbn;
-    res.send(books[isbn]);
+public_users.get('/isbn/:isbn', function (req, res) {
+    getByISBN(req.params.isbn)
+    .then(
+        result => res.send(result),
+        error => res.status(error.status).json({message: error.message})
+    );
 });
+  
 // Get book details based on author
 public_users.get('/author/:author',function (req, res) {
     const author = req.params.author;
-    const filetered_books = Object.values(books).filter((book) => book.author === author);
-    if (filetered_books.length > 0) {
-        return res.send(filetered_books[0]);
-    }
-    else {
-        return res.status(404).json({message: `${author} not found`});
-    }
+    getListBooks()
+    .then((bookEntries) => Object.values(bookEntries))
+    .then((books) => books.filter((book) => book.author === author))
+    .then((filteredBooks) => res.send(filteredBooks));
 });
 
 // Get all books based on title
 public_users.get('/title/:title',function (req, res) {
     const title = req.params.title;
-    const filetered_books = Object.values(books).filter((book) => book.title === title);
-    if (filetered_books.length > 0) {
-        return res.send(filetered_books[0]);
-    }
-    else {
-        return res.status(404).json({message: `${title} not found`});
-    }
+    getListBooks()
+    .then((bookEntry) => Object.values(bookEntry))
+    .then((books) => books.filter((book) => book.title === title))
+    .then((filteredBooks) => res.send(filteredBooks));
 });
 
 //  Get book review
